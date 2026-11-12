@@ -42,7 +42,7 @@
   </tr>
   <tr>
     <td>Last update</td>
-    <td><strong>2026-11-09</strong></td>
+    <td><strong>2026-11-12</strong></td>
   </tr>
   <tr>
     <td>Docs</td>
