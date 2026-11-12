@@ -36,7 +36,11 @@ def parse(*flags):
 
 class CliTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch.dict(os.environ, {}, clear=True))
+        # Windows subprocesses need SystemRoot to initialize networking imports.
+        system_environment = {key: value for key, value in os.environ.items()
+                              if key.upper() in {'SYSTEMROOT', 'WINDIR', 'COMSPEC',
+                                                 'PATH', 'PATHEXT', 'TEMP', 'TMP'}}
+        self.enterContext(patch.dict(os.environ, system_environment, clear=True))
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.folder = Path(self.tmp.name)
