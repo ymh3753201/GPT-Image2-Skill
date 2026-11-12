@@ -5,6 +5,7 @@
 #     "openai>=2.32.0",
 #     "python-dotenv>=1.0",
 #     "Pillow>=12.0",
+#     "socksio>=1.0",
 # ]
 # ///
 """Skill launcher for the shared gpt-image CLI.
@@ -13,7 +14,7 @@ Resolution order:
 1. Repo checkout / full plugin install: import ../../../src/gpt_image_cli/cli.py.
 2. Python environment already has gpt_image_cli installed: import it directly.
 3. Shell has a gpt-image executable: delegate to it.
-4. Final fallback: uvx installs/runs the GitHub CLI package transiently.
+4. If no backend is present, report how to install from the full local package.
 
 This keeps `skills/gpt-image` usable when copied as a standalone skill folder
 while preserving one canonical implementation for the installable Python CLI.
@@ -24,9 +25,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-
-_REPO_URL = "git+https://github.com/wuyoscar/gpt_image_2_skill"
-
 
 def _import_local_or_installed_main():
     """Return gpt_image_cli.cli.main from repo-local src or installed package."""
@@ -41,7 +39,9 @@ def _import_local_or_installed_main():
 
     try:
         from gpt_image_cli.cli import main  # type: ignore
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as exc:
+        if exc.name != "gpt_image_cli":
+            raise
         return None
     return main
 
@@ -61,17 +61,11 @@ def main() -> int:
     if executable:
         return _delegate([executable])
 
-    uvx = shutil.which("uvx") or shutil.which("uv")
-    if uvx:
-        if Path(uvx).name == "uv":
-            return _delegate([uvx, "tool", "run", "--from", _REPO_URL, "gpt-image"])
-        return _delegate([uvx, "--from", _REPO_URL, "gpt-image"])
-
     print(
-        "error: could not find the gpt-image CLI backend. Install uv and run this skill "
-        "again, or install the CLI first with:\n"
-        f"  uv tool install {_REPO_URL}\n"
-        "Then retry the same command.",
+        "error: gpt-image CLI backend is missing. From the extracted full package, "
+        "run: uv tool install .\n"
+        "Then run: python scripts/install_skills.py --replace\n"
+        "This launcher does not download code from GitHub.",
         file=sys.stderr,
     )
     return 2

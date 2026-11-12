@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.0 — 2026-11-12
+
+- Distribution maintained by ymh3753201, based on upstream v0.3.0 at 8a1e114. MIT license and original gallery attribution retained.
+- Default to the official `gpt-image-2.6-sunburst` ID for detailed posters, character continuity and product-reference editing. Preserve explicit models and add `OPENAI_IMAGE_MODEL`.
+- Add `--base-url` for compatible providers, provider model aliases, UTF-8 `--prompt-file` and optional `--complexity`.
+- Add reference-role and visual-review guidance for posters, short-drama frames and ecommerce sets.
+- Add local installation with a bundled CLI source copy, a full-source release ZIP and Chinese installation guide. No automatic GitHub fallback; retain SOCKS proxy dependency.
+- Test request routing, custom endpoints, multiple references, configuration precedence and extracted local installation without paid requests.
+
 ## v0.3.0 — 2026-11-09
 
 - Default generation and editing to GPT Image 2.6 Flare while preserving explicit Image 2 and 2.5 models.

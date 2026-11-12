@@ -1,137 +1,66 @@
 ---
 name: gpt-image
-description: "Generate or edit images through the packaged CLI and Reference Gallery, defaulting to GPT Image 2.6 Flare. Use for posters, typography, reference edits, inpainting, native GIFs, sprite animation, image-led websites, and explicit Image 2/2.5/2.6 requests."
-compatibility: "Requires Python 3.11+ and either `gpt-image`, `uv`, or `uvx`. CLI/API calls read `OPENAI_API_KEY` and may incur OpenAI API charges."
-metadata: {"openclaw":{"requires":{"anyBins":["gpt-image","uv","uvx"]},"primaryEnv":"OPENAI_API_KEY","homepage":"https://github.com/wuyoscar/gpt_image_2_skill"}}
+description: "Generate and edit images in Codex using GPT Image 2.6 Sunburst by default. Use for posters, Chinese typography, short-drama character sheets and keyframes, ecommerce images, uploaded references, inpainting and GIFs. Supports OpenAI-compatible third-party APIs and exact provider model IDs."
+metadata: {"openclaw":{"primaryEnv":"OPENAI_API_KEY","homepage":"https://github.com/ymh3753201/GPT-Image2-Skill"}}
 ---
 
-# gpt-image
+# GPT Image
 
-Agent runbook for GPT Image 2 / 2.5 / 2.6 generation/editing. Use the prompt library + packaged CLI. Do not reimplement image API code.
+Requires Python 3.11+ and the packaged CLI or uv. Requests use the chosen provider and credentials and may incur API charges.
 
-## Operating loop
+Create finished images from a brief and optional references through the packaged CLI. Read only the references relevant to the task. Keep the user's exact copy, subject identity, intended deliverables and chosen provider.
 
-1. **Classify request and resolve model**: `generate`, `edit`, `inpaint`, or `multi-reference`; identify asset type, exact text, aspect ratio, references, safety constraints, and budget/quality. Apply the model-choice rules below before any API call.
-2. **Choose the reference path**: Image 2 keeps the gallery-first workflow below. For 2.5/2.6, a precise brief needs no reference loading; otherwise choose one short task slice.
-3. **Refine only as needed**: preserve the brief. Add a specific gallery case, craft section or template only to fill a concrete gap; do not load them as a bundle for 2.5/2.6.
-4. **Confer when useful**: before costly/ambiguous/high-polish calls, present 1–3 matched directions plus planned size/quality; ask at most one concise question at a time. Skip long discussion for precise “generate now” requests with a resolved model.
-5. **Preflight, no side effects**: use existing CLI/skill if present. Check command availability (`command -v gpt-image`), installed tool lists when the tool manager exists, or the runtime’s own skill registry when available. Do not assume a local home path in cloud/hosted runtimes.
-6. **No blind setup**: do not reinstall, overwrite skill folders, create/modify `.env`, or write API keys unless the user explicitly requested setup. Global/shared installs are opt-in only.
-7. **Execute via CLI only**: call `gpt-image` or `scripts/generate.py` with an explicit `--model`. Do not create a new `generate.py`, SDK wrapper, or ad-hoc script for normal image requests.
-8. **Report**: output file path(s), key flags, and one concise refinement suggestion if useful.
+## Choose the model and API
 
-Fast path: default 2.6 Flare or an explicit 2.5/2.6 model + precise prompt + “generate now” → preflight and CLI, without a mandatory reference/craft pass. Do not reconfirm an exact valid model.
+- Default to **`gpt-image-2.6-sunburst`**, with `quality=high`, one image and PNG. This distribution prioritizes detailed posters, character continuity and product fidelity. This is a skill default, not an OpenAI server default.
+- Honor an explicit model or a previously selected model. `OPENAI_IMAGE_MODEL` is the user's configured default and takes precedence over the built-in default. Send the selected value explicitly via `--model`.
+- For speed-first drafts, select `gpt-image-2.6-flare` when the user asks for speed or chooses it. Do not change an explicitly selected model based on the task category.
+- For an unspecified “2.6” request, use the default directly. On OpenAI the documented IDs are `gpt-image-2.6-sunburst` and `gpt-image-2.6-flare`. A third-party service may use another alias, including `gpt-image-2.6`; preserve its documented model ID exactly.
+- Respect `OPENAI_BASE_URL` or the user's `--base-url`. The default is OpenAI; the CLI supports providers with compatible Images API endpoints. Do not hard-code a vendor, replace the user's base URL, reject an unfamiliar provider model, or use an unrelated chat API key. See [providers.md](references/providers.md) for configuration and compatibility.
+- If the user explicitly wants Codex's native image tool, use that available tool. Its model routing is platform-managed; this CLI's `--model` setting does not select the native tool's backend.
+- Consult [models.md](references/models.md) for official IDs, API defaults, parameters and verification boundaries. Leave `input_fidelity` and `complexity` unset unless the task or provider calls for them. `complexity` controls planning independently of rendering `quality`.
 
-## Model choice and prompt adaptation
+## Execute the request
 
-| Choice | API model ID | Suggested use |
-|---|---|---|
-| 2.6 Flare (default) | `gpt-image-2.6-flare` | Fast generation and editing |
-| 2.6 Sunburst | `gpt-image-2.6-sunburst` | Detailed visual work and precise editing |
-| 2.5 Flare | `gpt-image-2.5-flare` | Fast general generation and drafts |
-| 2.5 Sunburst | `gpt-image-2.5-sunburst` | Precise reference edits and detailed control |
-| Image 2 | `gpt-image-2` | Existing Image 2 workflows and compatibility |
+1. Identify the deliverables, exact text, aspect ratio, size and references. For a clear request, proceed. For a multi-image campaign or short-drama sequence, state a compact per-image plan and shared visual identity. Ask only for information that materially affects the result; do not require repeated confirmation of choices already made.
+2. Inspect every reference with the available image-viewing tool. Assign each a role: product identity, character identity, style, composition or edit target. Do not infer unseen product specifications or hidden views as facts. Read [production-workflows.md](references/production-workflows.md) for posters, short-drama imagery and ecommerce work.
+3. Write a complete prompt preserving exact text and edit invariants. Include the page/shot purpose, subject identity and count, composition, camera/light, text hierarchy and unwanted changes. For long or Chinese prompts, save a UTF-8 text file and pass `--prompt-file` to avoid shell escaping errors. Gallery/craft references are optional inspiration, not a mandatory bundle.
+4. Check the existing installation and effective configuration without printing keys. Use the installed `gpt-image` CLI, or `uv run "$SKILL_DIR/scripts/generate.py"`. Full local packages and installed skills include the Python source. If dependencies are missing, use the local installation guide; the launcher never downloads a repository automatically. Installation authorization does not authorize a paid test image.
+5. With **any image reference**, pass the actual local image files using repeatable `-i`. This selects `/images/edits`; do not merely describe the uploaded image in a text-only `/images/generations` request. If an attachment has no readable local path, obtain the file through the host's supported attachment access, or ask for the file. Never substitute a guessed path.
+6. Pass the resolved model, size, quality and output path. Use one request per distinct page or shot. `-n` requests variants of one prompt, not a sequence with different briefs. Produce the requested count; request further paid variants only when the user's scope does not already include them.
+7. Inspect each output at full size. Verify exact text, subject identity, product structure/count/color, character face/clothing, layout and requested size. For corrections, use the original references plus the latest accepted image when helpful, with a precise change and preserved-region description. Stay within authorized revision scope. On timeout, invalid-model, access, quota or policy error, report the error and stop; do not blindly retry, change providers or switch models.
+8. Deliver the images inline where possible and provide absolute local paths, requested model and useful settings. State any visible defects or unverified points. For short-drama work, these outputs are images/keyframes; report separately if video production was requested and remains outstanding.
 
-- With no model specified, or a request for “latest” / “Image 2.6”, use `gpt-image-2.6-flare` directly without model confirmation. Unqualified “Flare” / “Sunburst” means the 2.6 variant unless an earlier version was already selected for this task.
-- Preserve an exact model ID or a previously confirmed choice. If an explicit older family is ambiguous (for example “GPT 2.5”), ask which variant; for a misspelled model, clarify rather than silently replacing it. Bare `gpt-image-2.5` and `gpt-image-2.6` are not API IDs.
-- Always pass the resolved ID through `--model`, including the default. The standalone CLI also defaults to `gpt-image-2.6-flare`. Users can pin `--model gpt-image-2` or a 2.5 model to retain earlier behavior.
-- Keep model confirmation, cost discussion, and API flags separate from the final image prompt. Use the model-specific reference path below only when it helps the task. Preserve the user's exact text, intended content, reference identity, and edit invariants; obtain confirmation before material prompt changes.
-- Generate one image unless the user requested more. Do not silently switch models, change material prompt content, or run multiple model/prompt variants or comparisons. Ask before additional paid variants. For an authorized same-prompt comparison, keep the prompt, size, and quality identical unless the user asks to vary them.
-- Consult `references/models.md` when parameter support or validation status needs checking. On an invalid-model, access/403, quota, or policy failure, report the failure and stop; do not switch models or rewrite the prompt to retry automatically.
-
-## CLI resolution
-
-Preferred call order:
+## CLI examples
 
 ```bash
-# Existing CLI on PATH
-gpt-image --model MODEL_ID -p "PROMPT" [-f OUT] [-i REF...] [-m MASK] [options]
+# Poster: full Chinese copy in a UTF-8 file
+gpt-image --model gpt-image-2.6-sunburst --prompt-file poster.txt --size portrait --quality high -f poster.png
 
-# Installed skill folder; use runtime-provided skill path when available
-uv run "$SKILL_DIR/scripts/generate.py" --model MODEL_ID -p "PROMPT" [-f OUT] [-i REF...] [-m MASK] [options]
+# Product identity from front and back references
+gpt-image --model gpt-image-2.6-sunburst --prompt-file product.txt -i front.png -i back.png --size 1024x1536 -f product.png
 
-# Direct transient CLI when the user requested setup/one-off CLI execution
-uvx --from git+https://github.com/wuyoscar/gpt_image_2_skill gpt-image --model MODEL_ID -p "PROMPT" [options]
+# Character identity and prior accepted frame
+gpt-image --model gpt-image-2.6-sunburst --prompt-file shot-02.txt -i character.png -i shot-01.png --size 1536x1024 -f shot-02.png
+
+# Provider-defined endpoint/model; credentials come from the environment
+gpt-image --base-url https://images.example.com/v1 --model provider-model-id --prompt-file poster.txt -i reference.png -f result.png
+
+# Source or locally installed skill launcher
+uv run "$SKILL_DIR/scripts/generate.py" --model gpt-image-2.6-sunburst --prompt-file poster.txt -f poster.png
 ```
 
-`scripts/generate.py` is a launcher: repo-local `src/gpt_image_cli` → installed `gpt-image` → PATH `gpt-image` → transient `uvx`/`uv` fallback.
+`--model` > `OPENAI_IMAGE_MODEL` > Sunburst. `--base-url` > `OPENAI_BASE_URL` > OpenAI. Environment variables override working-directory `.env`, which overrides home `.env`. Do not edit keys or shared configuration unless the user requested setup. Never print secrets.
 
-## Image to animation or website
+## Parameters and references
 
-Match the deliverable, not just the first image:
+- `--size`: `square`, `portrait`, `landscape`, `wide`, `tall`, `1k`, `2k`, `4k`, `auto` or provider-supported `WIDTHxHEIGHT`. Choose dimensions for the actual placement; do not claim a design suggestion is a platform rule.
+- `--quality`: `auto`, `low`, `medium`, `high`, `xhigh`, `max`. Default `high`; explain cost implications before increasing an agreed setting. Provider capabilities can differ.
+- `--complexity`: optional `low`, `medium`, `high`. Omit for ordinary requests; supported OpenAI 2.6 models default to high planning effort.
+- `-i`: repeatable local reference image, up to 16. `-m`: optional alpha PNG mask with the first reference, same dimensions; transparent regions are edited.
+- `--format`: `png`, `jpeg`, `webp`, `gif`. Transparent output requires PNG/WebP. `--compression` applies to JPEG/WebP. The CLI preserves provider base64 or URL outputs.
+- GIF: `--format gif`, optional `--frames` 2–16 and `--frame-duration` 20–2000 ms. Size defaults to `auto`. Inspect all frames and playback. Provider/model access is required.
+- Local sprite animation: `gpt-image animate --help`. This assembles an existing sprite sheet without an API call.
+- Image 2 requests: [gallery.md](references/gallery.md), then one relevant category. Image 2.6: [models.md](references/models.md) plus the needed production workflow. Historical 2.5 task guides may inform prompts, with their original provenance retained.
 
-- **Native GIF**: use `--format gif`, optional `--frames` (2-16) and `--frame-duration` (20-2000 ms). Size defaults to `auto` for GIF. Inspect all frames and actual playback. Do not use masks or compression with GIF.
-- **Sprite sheet to GIF**: generate one evenly divided grid with a fixed camera, scale, anchor and explicit cell order, then run `gpt-image animate --sheet sheet.png --columns 4 --rows 2 --duration 160 -f loop.gif --preview player.html`. This local step needs no key and makes no API calls. It slices existing frames; it does not invent motion from a still or fix registration errors. `--ping-pong`, `--margin`, `--gutter` and `--count` handle playback and spacing. Inspect alpha, every cell, loop seam and jitter.
-- **Image-led website**: generate visual assets, then build real HTML/CSS/JS around them. Keep controls and readable interface text in HTML. Test clicks, pause/reduced-motion behaviour, mobile layout and asset paths. A screenshot is not a working website.
-
-Read [creative workflows](../../../docs/creative-workflows.md) in a full repo/plugin checkout. In a standalone skill folder, use `references/models.md` and CLI `--help` / `animate --help`; the examples are also at https://github.com/wuyoscar/gpt_image_2_skill/blob/main/docs/creative-workflows.md.
-
-## Key and cost rules
-
-- CLI reads `OPENAI_API_KEY` from process env, then `.env`, then `~/.env` without overriding existing env; successful API calls may bill the user’s OpenAI account.
-- If host/runtime has native platform-managed image generation and the user wants that path, use the host tool instead of this CLI.
-- If `OPENAI_API_KEY` is unset, report missing key or use host-native generation when requested; do not write secrets.
-- If user wants to avoid local-key use, respect `unset OPENAI_API_KEY`; if a key exists in `.env`/`~/.env`, tell them to remove/rename it for the session rather than working around it.
-- Never print secret values.
-
-## Flags
-
-| Flag | Values | Use |
-|---|---|---|
-| `-p, --prompt` | string | Required prompt/edit instruction |
-| `-f, --file` | path | Output path; auto-named if omitted |
-| `-i, --image` | repeatable path | Use edits endpoint; supports multiple references |
-| `-m, --mask` | PNG path | Inpaint with alpha mask; requires `-i` |
-| `--model` | Exact ID from the model table | Default 2.6 Flare; agent passes the resolved ID explicitly |
-| `--size` | `1k`, `2k`, `4k`, `portrait`, `landscape`, `square`, `wide`, `tall`, or literal | Canvas size |
-| `--quality` | `low`, `medium`, `high`, `auto`; 2.5/2.6 also `xhigh`, `max` | Cost/quality dial; check model-specific limits |
-| `-n, --n` | integer | Number of images |
-| `--background` | `auto`, `opaque`; 2.5/2.6 also `transparent` | Transparency requires PNG or WebP, not JPEG |
-| `--input-fidelity` | `low`, `high`; omitted by default | Edit-only; explicit 2.5/2.6 values are forwarded to the API, not assumed supported |
-| `--moderation` | `auto`, `low` | Generation moderation setting |
-| `--format` | `png`, `jpeg`, `webp`, `gif` | GIF uses 2.6; default remains PNG |
-| `--frames` / `--frame-duration` | 2-16 / 20-2000 ms | Native GIF only; API defaults 9 / 200 |
-| `--compression` | `0-100` | JPEG/WebP compression |
-| `--user` | string | Optional end-user identifier |
-
-Quality starting points (not guarantees; keep the user's agreed setting). For 2.5/2.6, these take precedence over fixed quality advice in older craft references:
-- `low`: cheap drafts and broad exploration; multiple variants require user authorization.
-- `medium`: normal exploration, style probing, balanced cost.
-- `high`: CLI default and a candidate for final assets, dense text, diagrams and UI. On 2.5/2.6, evaluate against the task requirements; do not assume `medium` fails or a higher setting always wins.
-- `xhigh` / `max`: 2.5/2.6 options for higher-quality work; discuss the cost trade-off before increasing an already agreed quality. Do not use them automatically for budget-conscious requests.
-
-Size policy:
-- default/social square: `1k` / `1024x1024`
-- poster/mobile/beauty: `portrait`
-- landscape/gameplay/photo: `landscape`
-- print/paper figure: `2k`
-- widescreen hero: `4k`
-- vertical story/banner: `tall`
-
-## Endpoint routing
-
-| Mode | Trigger | Endpoint |
-|---|---|---|
-| Text-to-image | no `-i` | `/v1/images/generations` |
-| Reference edit | one or more `-i` | `/v1/images/edits` |
-| Inpaint | `-i` + `-m` | `/v1/images/edits` with mask |
-
-Surface API errors verbatim enough for debugging; exit codes: `0` success, `1` API/refusal, `2` bad args/missing key.
-
-## Reference loading
-
-- **Image 2**: open `references/gallery.md`, then one matching `references/gallery-*.md` category and its actual prompt text. Read only relevant sections of `references/craft.md` or the historical `references/openai-cookbook.md` when needed.
-- **Image 2.6**: use `references/models.md` for current compatibility and verification status. For prompt inspiration, reuse a relevant 2.5 task slice below; these are historical guidance, not 2.6-verified examples.
-- **Image 2.5**: no mandatory references for a precise brief. If guidance is needed, choose **one** directly: `references/openai-image-2.5-generation.md` (photo/product/illustration), `references/openai-image-2.5-layout-and-text.md` (text/UI/diagrams/panels), or `references/openai-image-2.5-editing.md` (references/masks/translation).
-- **Other questions**: `references/openai-image-2.5.md` is an optional index; `references/openai-image-2.5-migration.md` covers migration/comparison; `references/models.md` owns current API parameters and validation status.
-- **Extra inspiration only**: gallery cases, a targeted craft section, or `references/templates-gpt-image-2.5.md` (community adaptations, not verified outputs). Do not preload them or the old Cookbook for 2.5/2.6.
-
-Load the smallest useful slice, not both model routes. Add a second task slice only for a genuine hybrid. Historical examples do not override current API notes or the user's model/settings.
-
-## Verification
-
-- Before API call: check the resolved model and explicit `--model`, endpoint mode, size, quality, output path, and required reference/mask files. Omit `--input-fidelity` unless explicitly needed; do not assume 2.5/2.6 always uses or accepts `high`.
-- After CLI call: report path(s) printed by the CLI and surface stderr on failure.
-- For edits/inpaints: verify `-i` paths exist; verify `-m` exists when used.
-
-Preserve `Curated` vs `Author + Source` metadata when adapting examples. Add new collected prompts to the Reference Gallery before README promotion.
+Run `gpt-image --help` for all flags. Exit codes are 0 success, 1 API/output failure, 2 bad arguments or missing configuration. A successful request still requires visual review.

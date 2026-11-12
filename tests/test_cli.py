@@ -36,9 +36,12 @@ def parse(*flags):
 
 class CliTests(unittest.TestCase):
     def setUp(self):
+        self.enterContext(patch.dict(os.environ, {}, clear=True))
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.folder = Path(self.tmp.name)
+        os.environ['HOME'] = str(self.folder)
+        os.environ['USERPROFILE'] = str(self.folder)
         self.image = self.folder / 'reference.png'
         self.image.write_bytes(PNG)
         self.requests = []
@@ -55,8 +58,12 @@ class CliTests(unittest.TestCase):
                               'code': 'insufficient_quota' if self.response_status == 429 else 'permission_denied'}}
         return httpx.Response(self.response_status, json=body, request=request)
 
+    def make_client(self, **kwargs):
+        return OpenAI(api_key='offline-test-not-a-real-key',
+                      http_client=httpx.Client(transport=httpx.MockTransport(self.respond)), **kwargs)
+
     def test_default_is_image26_and_explicit_models_not_rewritten(self):
-        self.assertEqual(parse().model, 'gpt-image-2.6-flare')
+        self.assertEqual(parse().model, 'gpt-image-2.6-sunburst')
         for model in (*MODELS, *(m + '-2026-09-08' for m in IMAGE25_MODELS), 'gpt-image-2'):
             with self.subTest(model=model):
                 self.assertEqual(parse('--model', model).model, model)
@@ -94,7 +101,7 @@ class CliTests(unittest.TestCase):
                         parse('--model', model, '--size', size)
 
     def test_image26_sizes_and_default_quality(self):
-        self.assertEqual(parse('--quality', 'max').model, 'gpt-image-2.6-flare')
+        self.assertEqual(parse('--quality', 'max').model, 'gpt-image-2.6-sunburst')
         for model in IMAGE26_MODELS:
             for size in ('1k', 'portrait', 'landscape', 'auto', '2048x2048'):
                 args = parse('--model', model, '--size', size)
@@ -217,15 +224,15 @@ class CliTests(unittest.TestCase):
             path = self.folder / (endpoint + '.png')
             with patch.object(sys, 'argv', ['gpt-image', '-p', 'Offline test', '-f', str(path), *flags]), \
                  patch.object(cli, '_load_env_chain'), patch.dict(os.environ, {'OPENAI_API_KEY': 'offline-test'}), \
-                 patch.object(cli, 'OpenAI', return_value=self.client) as constructor, contextlib.redirect_stdout(io.StringIO()):
+                 patch.object(cli, 'OpenAI', side_effect=self.make_client) as constructor, contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(cli.main(), 0)
                 constructor.assert_called_once_with(max_retries=0)
             self.assertEqual(path.read_bytes(), PNG)
             self.assertEqual(self.requests[-1].url.path, '/v1/images/' + endpoint)
             if endpoint == 'generations':
-                self.assertEqual(json.loads(self.requests[-1].content)['model'], 'gpt-image-2.6-flare')
+                self.assertEqual(json.loads(self.requests[-1].content)['model'], 'gpt-image-2.6-sunburst')
             else:
-                self.assertIn(b'gpt-image-2.6-flare', self.requests[-1].content)
+                self.assertIn(b'gpt-image-2.6-sunburst', self.requests[-1].content)
 
     def test_api_errors_no_fallback_or_output(self):
         for status, model in product((403, 429), MODELS):
@@ -234,7 +241,7 @@ class CliTests(unittest.TestCase):
             path = self.folder / f'{status}.png'
             with patch.object(sys, 'argv', ['gpt-image', '-p', 'Offline test', '--model', model, '-f', str(path)]), \
                  patch.object(cli, '_load_env_chain'), patch.dict(os.environ, {'OPENAI_API_KEY': 'offline-test'}), \
-                 patch.object(cli, 'OpenAI', return_value=self.client), contextlib.redirect_stderr(io.StringIO()):
+                 patch.object(cli, 'OpenAI', side_effect=self.make_client), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(cli.main(), 1)
             self.assertEqual(len(self.requests), 1)
             self.assertEqual(json.loads(self.requests[0].content)['model'], model)
@@ -254,13 +261,93 @@ class CliTests(unittest.TestCase):
                                        cwd=self.folder, capture_output=True, text=True)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertIn('--model', completed.stdout)
-            self.assertIn('Default gpt-image-2.6-flare', completed.stdout)
+            self.assertIn('gpt-image-2.6-sunburst', completed.stdout)
             self.assertIn('xhigh', completed.stdout)
             completed = subprocess.run([sys.executable, '-B', str(root / script), 'animate', '--help'],
                                        cwd=self.folder, capture_output=True, text=True)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertIn('No API key required', completed.stdout)
             self.assertIn('--sheet', completed.stdout)
+
+    def test_model_environment_and_explicit_override(self):
+        with patch.dict(os.environ, {'OPENAI_IMAGE_MODEL': 'provider/image-26'}):
+            self.assertEqual(parse().model, 'provider/image-26')
+            self.assertEqual(parse('--model', 'gpt-image-2.6-flare').model, 'gpt-image-2.6-flare')
+
+    def test_base_url_environment_and_explicit_override(self):
+        with patch.dict(os.environ, {'OPENAI_BASE_URL': 'https://env.example.test/v1'}):
+            self.assertEqual(parse().base_url, 'https://env.example.test/v1')
+            self.assertEqual(parse('--base-url', 'https://flag.example.test/v2').base_url,
+                             'https://flag.example.test/v2')
+
+    def test_custom_provider_alias_gif_is_not_rewritten(self):
+        args = parse('--base-url', 'https://provider.example.test/v1',
+                     '--model', 'provider/animation', '--format', 'gif', '--frames', '4')
+        cli.call_generate(self.client, args)
+        body = json.loads(self.requests[-1].content)
+        self.assertEqual(body['model'], 'provider/animation')
+        self.assertEqual(body['frame_count'], 4)
+
+    def test_bad_prompt_and_endpoint_stop_before_api(self):
+        for flags in [('--base-url', 'not-a-url'), ('--model', ' '), ('-p', '')]:
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    parse(*flags)
+        with patch.object(sys, 'argv', ['gpt-image', '--prompt-file', str(self.folder / 'missing.txt')]), \
+             contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            cli.parse_args()
+        self.assertEqual(self.requests, [])
+
+    def test_custom_provider_generate_and_multi_reference_edit(self):
+        other = self.folder / '商品背面.png'
+        other.write_bytes(PNG)
+        provider_url = 'https://images.example.test/custom/v1'
+        for references in ([], ['-i', str(self.image), '-i', str(other)]):
+            path = self.folder / 'provider.png'
+            argv = ['gpt-image', '-p', '保持商品身份', '--base-url', provider_url,
+                    '--model', 'provider/image-26', '--quality', 'max', '-f', str(path), *references]
+            def make_client(**kwargs):
+                return OpenAI(http_client=httpx.Client(transport=httpx.MockTransport(self.respond)), **kwargs)
+            with patch.object(sys, 'argv', argv), patch.object(cli, '_load_env_chain'), \
+                 patch.dict(os.environ, {'OPENAI_API_KEY': 'fake-test-key'}), \
+                 patch.object(cli, 'OpenAI', side_effect=make_client), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli.main(), 0)
+            request = self.requests[-1]
+            self.assertEqual(request.url.host, 'images.example.test')
+            self.assertEqual(request.url.path, '/custom/v1/images/' + ('edits' if references else 'generations'))
+            if references:
+                self.assertEqual(request.content.count(b'name="image[]"'), 2)
+                self.assertIn(b'provider/image-26', request.content)
+            else:
+                self.assertEqual(json.loads(request.content)['model'], 'provider/image-26')
+            self.assertEqual(path.read_bytes(), PNG)
+
+    def test_prompt_file_and_complexity_reach_both_endpoints(self):
+        prompt = '主标题“春日上新”\n保留参考图中的商品颜色和结构。'
+        prompt_file = self.folder / '海报提示词.txt'
+        prompt_file.write_text(prompt, encoding='utf-8')
+        with patch.object(sys, 'argv', ['gpt-image', '--prompt-file', str(prompt_file), '--complexity', 'medium']):
+            args = cli.parse_args()
+        cli.call_generate(self.client, args)
+        body = json.loads(self.requests[-1].content)
+        self.assertEqual(body['prompt'], prompt)
+        self.assertEqual(body['complexity'], 'medium')
+        args.image = [self.image]
+        cli.call_edit(self.client, args)
+        self.assertIn(prompt.encode('utf-8'), self.requests[-1].content)
+        self.assertIn(b'name="complexity"', self.requests[-1].content)
+
+    def test_excess_references_fail_before_request(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parse(*(['-i', str(self.image)] * 17))
+        self.assertEqual(self.requests, [])
+
+    def test_url_response_saved_without_image_api_recall(self):
+        from types import SimpleNamespace
+        with patch.object(cli.urllib.request, 'urlopen', return_value=contextlib.nullcontext(io.BytesIO(PNG))):
+            paths = cli.write_outputs([SimpleNamespace(url='https://cdn.example.test/result.png')],
+                                      self.folder / 'url.png', 1)
+        self.assertEqual(paths[0].read_bytes(), PNG)
 
 
 if __name__ == '__main__':

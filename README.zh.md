@@ -1,3 +1,5 @@
+**v0.4.0 · 本地完整安装版**：由 ymh3753201 基于 [wuyoscar 原项目](https://github.com/wuyoscar/GPT-Image2-Skill) 维护。默认采用 2.6 Sunburst，面向海报、短剧关键帧、电商图和参考图编辑，并保留第三方 API 地址及模型选择。[安装说明](COURSE_INSTALL_ZH.md) · [官方模型核对](skills/gpt-image/references/models.md)
+
 <h1 align="center">GPT Image · Prompt gallery + skills + CLI</h1>
 <p align="center"><em>收集 GPT Image 2、2.5 与 2.6 的提示词和参考图，附两个 Agent Skill 和 CLI。</em></p>
 
@@ -48,7 +50,7 @@
   </tr>
 </table>
 
-挑一张喜欢的图，打开提示词，换上自己的参考图就能试。`gpt-image` 负责生图和改图，`get-prompt-from-image` 负责从图片提取提示词。CLI 和生图 Skill 默认使用 GPT Image 2.6 Flare；Image 2 的图库，以及 2.5 的[阅读资料](#image-25-reading)和任务指南也都保留。
+挑一张喜欢的图，打开提示词，换上自己的参考图就能试。`gpt-image` 负责生图和改图，`get-prompt-from-image` 负责从图片提取提示词。CLI 和生图 Skill 默认使用 GPT Image 2.6 Sunburst；Image 2 的图库，以及 2.5 的[阅读资料](#image-25-reading)和任务指南也都保留。
 
 使用 CLI 时，先把相关 PDF 页面导出为 PNG、WebP 或 JPG，再通过 `-i` 附加。参见[支持的参考图片格式](https://developers.openai.com/api/reference/python/resources/images/methods/edit)。提示词里的必需文字和编辑约束仍要说清楚。
 
@@ -111,7 +113,7 @@ gpt-image --model gpt-image-2.6-flare \
 
 ## ✨ GPT Image 2.6 实测
 
-我们从 X 和 Reddit 挑了五个点子，用 `gpt-image-2.6-flare`、`high` 质量重新生成。点击图片可查看 PNG 原图；展开下方提示词，可以找到原帖和改编说明。
+上游作者从 X 和 Reddit 挑了五个点子，用 `gpt-image-2.6-flare`、`high` 质量重新生成。点击图片可查看 PNG 原图；展开下方提示词，可以找到原帖和改编说明。
 
 <table>
   <tr>
@@ -311,19 +313,19 @@ photorealistic, 3D render, flat vector style, pure cel shading, watercolor bleed
 
 | 模型 | 适合的起点 |
 |---|---|
-| `gpt-image-2.6-flare` | **默认**：快速生图和编辑 |
-| `gpt-image-2.6-sunburst` | 细节要求更高的生成与精确编辑 |
+| `gpt-image-2.6-sunburst` | **默认**：细节构图、角色与商品参考图编辑 |
+| `gpt-image-2.6-flare` | 快速生图和编辑 |
 | `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` | 继续使用 2.5 工作流 |
 | `gpt-image-2` | 保留 Image 2 工作流 |
 
-不指定模型时，CLI 和 Skill 都使用 `gpt-image-2.6-flare`。Skill 会通过 `--model` 显式传入这个默认值，无需再确认；你指定其他模型时，就按你的选择执行。旧命令要继续使用 Image 2，加上 `--model gpt-image-2` 即可。
+不指定模型时，CLI 和 Skill 都使用 `gpt-image-2.6-sunburst`。Skill 会通过 `--model` 显式传入这个默认值，无需再确认；你指定其他模型时，就按你的选择执行。旧命令要继续使用 Image 2，加上 `--model gpt-image-2` 即可。
 
-CLI 支持生成和编辑 PNG、JPEG、WebP 和 GIF，默认质量为 `high`，草稿可以先用 `low`。2.5 和 2.6 还支持 `xhigh`、`max`。SVG、complexity 和标注编辑目前没有对应的 CLI 参数。序列图可以用 `gpt-image animate` 在本地组装成动图。已经测试过的 2.6 Flare 生图和参考图编辑见[运行记录](docs/image-2.6-samples.md)。
+CLI 支持生成和编辑 PNG、JPEG、WebP 和 GIF，默认质量为 `high`，草稿可以先用 `low`。2.5 和 2.6 还支持 `xhigh`、`max`。可以用 `--complexity` 指定规划复杂度；SVG 和标注编辑暂未提供 CLI 参数。序列图可以用 `gpt-image animate` 在本地组装成动图。上游作者测试过的 2.6 Flare 生图和参考图编辑见[运行记录](docs/image-2.6-samples.md)。
 
-例如，用 2.6 Flare 生成一个透明背景图标：
+例如，用 2.6 Sunburst 生成一个透明背景图标：
 
 ```bash
-gpt-image --model gpt-image-2.6-flare \
+gpt-image --model gpt-image-2.6-sunburst \
   -p "原创扁平叶片图标，居中，留足边距，透明背景" \
   --quality medium --background transparent --format png -f leaf.png
 ```
@@ -335,7 +337,7 @@ gpt-image --model gpt-image-2.6-flare \
 ### 文本 → 图片
 
 ```bash
-gpt-image --model gpt-image-2.6-flare -p "晚上10点的逼真便利店" --size 1k --quality high -f store.png
+gpt-image --model gpt-image-2.6-sunburst -p "晚上10点的逼真便利店" --size 1k --quality high -f store.png
 ```
 
 底层实现：`POST /v1/images/generations`，传入显式选择的模型。
@@ -360,163 +362,21 @@ gpt-image --model gpt-image-2.6-sunburst -p "将天空替换为极光" \
 
 <a id="install"></a>
 
-## 📥 安装
+## 安装与更新
 
-首次安装或更新，把这句话发给 coding agent 就行：
+推荐下载本仓库 Release 中的完整 ZIP，或使用转发的完整安装包。按 [中文安装说明](COURSE_INSTALL_ZH.md) 把安装提示词交给 Codex。首次安装仍需 Python 3.11+、uv 和 Python 依赖，安装程序使用包内代码。
 
-```text
-帮我安装或更新 GPT Image Skill：https://raw.githubusercontent.com/wuyoscar/GPT-Image2-Skill/main/docs/install.md
-```
-
-Agent 会检查现有安装，选择对应的更新方式，再验证结果。你也可以自行使用下方命令。
-
-可以任选一个 Skill，也可以同时安装：`gpt-image` 负责生成和编辑图片，`get-prompt-from-image` 负责从参考图提取 Prompt。
-
-安装前先检查 Skill 或 CLI 是否已经可用，保留已有 Skill 目录和 API Key 文件。优先使用运行时自带的 skill list/status 命令；安装到全局或共享目录前，先征得用户同意。
+在解压根目录执行：
 
 ```bash
-command -v gpt-image || true
-command -v uv >/dev/null && uv tool list | grep -E '^gpt-image-cli([[:space:]]|$)' || true
-test -n "${OPENAI_API_KEY:-}" && echo "OPENAI_API_KEY is already set (value hidden)"
+uv tool install .
+python scripts/install_skills.py
+gpt-image --version
 ```
 
-<details>
-<summary><strong>Claude Code</strong></summary>
+更新旧版时，使用 `uv tool install --force .` 和 `python scripts/install_skills.py --replace`。新开 Codex 聊天加载新技能。详细说明见 [安装指南](docs/install.md)；其他 Agent 和插件方式见 [安装与更新](docs/install-update.md)。
 
-```text
-/plugin marketplace add wuyoscar/gpt_image_2_skill
-/plugin install gpt-image@wuyoscar-skills
-```
-
-</details>
-
-<details>
-<summary><strong>Codex</strong></summary>
-
-推荐用能记录来源的安装器，后续可直接运行上方的 skills 更新命令：
-
-```bash
-npx --yes skills@latest add wuyoscar/gpt_image_2_skill --skill gpt-image get-prompt-from-image --agent codex --copy
-```
-
-也可以使用支持 `codex plugin` 的新版 Codex 安装原生插件，见[完整步骤](docs/install-update.md#codex-native-plugin)。下面保留 Skill 安装器和手工安装方式。
-
-Codex 内置了 `$skill-installer`、`$skill-creator` 等 Skill 管理工具。
-打开 Codex，针对你想安装的每个 Skill，用对应的 GitHub skill 文件夹 URL 调用内置安装器：
-
-```text
-# gpt-image
-$skill-installer
-Install this skill from GitHub:
-https://github.com/wuyoscar/gpt_image_2_skill/tree/main/skills/gpt-image
-
-# get-prompt-from-image
-$skill-installer
-Install this skill from GitHub:
-https://github.com/wuyoscar/gpt_image_2_skill/tree/main/skills/get-prompt-from-image
-```
-
-安装器会下载每个 GitHub 文件夹，并放到你的 Codex skills 目录，通常是：
-
-```bash
-~/.codex/skills/gpt-image
-~/.codex/skills/get-prompt-from-image
-```
-
-安装后重启 Codex，让新的 skills 生效。
-
-如果你想手动同时安装，可以把两个 skill 文件夹复制到 Codex 的 skills 目录：
-
-```bash
-git clone https://github.com/wuyoscar/gpt_image_2_skill.git
-cd gpt_image_2_skill
-
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-for skill in gpt-image get-prompt-from-image; do
-  test -e "${CODEX_HOME:-$HOME/.codex}/skills/$skill" && echo "$skill already exists; stop before overwriting" && exit 1
-  cp -R "skills/$skill" "${CODEX_HOME:-$HOME/.codex}/skills/"
-done
-```
-
-</details>
-
-<details>
-<summary><strong>AgentSkills / npx skills</strong></summary>
-
-对于 cross-agent `skills` 安装器已经支持的运行时，可以选择任意一个 Skill，也可以直接从 GitHub 同时安装两个：
-
-```bash
-# 将 --agent 改为 claude-code、codex、opencode、openclaw 或其他受支持运行时。
-npx --yes skills@latest add wuyoscar/gpt_image_2_skill \
-  --skill gpt-image \
-  --skill get-prompt-from-image \
-  --agent codex --copy
-```
-
-这些示例刻意不加 `--global`。只有当你明确想把这个 Skill 安装到该运行时的全局 / 共享 skills 目录时，才添加 `--global`。
-
-如果你的运行时还没有被 `skills@latest` 列出，请使用下面的手动 Agent Skill 安装方式。
-
-</details>
-
-<details>
-<summary><strong>手动安装 Agent Skill</strong></summary>
-
-把 `AGENT_SKILLS_DIR` 设置为你的 Agent 运行时所使用的 skills 目录，然后把一个或两个 skill 文件夹软链接进去。
-
-```bash
-git clone https://github.com/wuyoscar/gpt_image_2_skill.git
-cd gpt_image_2_skill
-
-# 选择你的运行时对应的 skills 目录。
-# 示例：
-#   Codex:      ~/.codex/skills
-#   Claude Code / OpenClaw / Hermes Agent / 其他运行时：使用该运行时文档指定的 skills 目录。
-export AGENT_SKILLS_DIR="/path/to/your/agent/skills"
-
-mkdir -p "$AGENT_SKILLS_DIR"
-for skill in gpt-image get-prompt-from-image; do
-  test -e "$AGENT_SKILLS_DIR/$skill" && echo "$skill already exists; stop before overwriting" && exit 1
-  ln -s "$PWD/skills/$skill" "$AGENT_SKILLS_DIR/$skill"
-done
-```
-
-</details>
-
-<details>
-<summary><strong>CLI</strong></summary>
-
-```bash
-uvx --from git+https://github.com/wuyoscar/gpt_image_2_skill gpt-image --model gpt-image-2.6-flare -p "a cat astronaut"
-
-# 或在尚未安装时安装到 PATH
-command -v gpt-image >/dev/null || uv tool install git+https://github.com/wuyoscar/gpt_image_2_skill
-gpt-image --model gpt-image-2.6-flare -p "a cat astronaut"
-```
-
-</details>
-
-<details>
-<summary><strong>更新</strong></summary>
-
-按最初的安装方式更新。更新后重新开始一次 Agent 会话。
-
-| 安装方式 | 更新命令 |
-|---|---|
-| Claude Code 插件 | `claude plugin update gpt-image@wuyoscar-skills` |
-| 用 skills 安装到当前项目的 Codex / 其他 Skill | `npx --yes skills@latest update gpt-image get-prompt-from-image --project` |
-| 用 skills 全局安装 | 将上面的 `--project` 换成 `--global` |
-| Codex 原生插件 | `codex plugin marketplace upgrade wuyoscar-skills && codex plugin add gpt-image@wuyoscar-skills` |
-| 独立 Python CLI | `uv tool upgrade gpt-image-cli` |
-| 指向 Git checkout 的 Skill 符号链接 | `git -C /path/to/gpt_image_2_skill pull --ff-only` |
-
-Claude Code 可以在 `/plugin` 的 Marketplaces 中为 `wuyoscar-skills` 开启自动更新。Codex 原生插件刷新后，请在新会话的 `/plugins` 中核对安装版本。CLI 用 `gpt-image --version` 查看版本。
-
-Skill、插件和独立 CLI 是不同的安装；一个更新命令不一定覆盖另一个。手工复制的目录也不一定由 skills 管理。完整安装方式、作用范围和官方来源见[安装与更新](docs/install-update.md)。
-
-</details>
-
-> **API Key：** CLI 依次从进程环境、`.env`、`~/.env` 读取 `OPENAI_API_KEY`，保留已经设置的值。要避免使用本地 Key，请检查这三处；`unset OPENAI_API_KEY` 只清除进程变量。Codex 用户也可以选择由平台管理的内置生图工具。
+API 地址通过 `OPENAI_BASE_URL` 或 `--base-url` 配置，支持 OpenAI 兼容平台。模型通过 `OPENAI_IMAGE_MODEL` 或 `--model` 指定，默认 `gpt-image-2.6-sunburst`。API Key 使用 `OPENAI_API_KEY`，请保存在自己的环境或生图工作目录 `.env`，避免放入分享包。
 
 <a id="cli-reference"></a>
 
@@ -525,12 +385,15 @@ Skill、插件和独立 CLI 是不同的安装；一个更新命令不一定覆�
 <details>
 <summary><strong>参数、质量档位与 SDK 示例</strong></summary>
 
-### 参数（完整）
+### 常用参数
 
 | 标志 | 取值 | 默认值 | 适用范围 | 备注 |
 |---|---|---|---|---|
+| `--prompt-file` | UTF-8 文件 | 不传 | 两者 | 与 `-p` 二选一，完整保留多行中文文案。 |
+| `--base-url` | API 基础地址 | 环境变量或 OpenAI | 两者 | 支持兼容平台。 |
+| `--complexity` | `low`、`medium`、`high` | 不传 | 两者 | 可选规划复杂度。 |
 | `-p, --prompt` | 字符串 | 必需 | 两者 | 完整的提示文本。 |
-| `--model` | 上述精确模型 ID | `gpt-image-2.6-flare` | 两者 | Skill 显式传入解析后的模型，包括默认模型。 |
+| `--model` | 上述精确模型 ID | `gpt-image-2.6-sunburst` | 两者 | Skill 显式传入解析后的模型，包括默认模型。 |
 | `-f, --file` | 路径 | `./fig/YYYY-MM-DD-HH-MM-SS-<slug>.png` | 两者 | 明确输出路径。 |
 | `-i, --image` | 路径（可重复） | 不传 | 编辑 | 存在时走 `/v1/images/edits` 路由。 |
 | `-m, --mask` | 路径（PNG，带alpha通道） | 不传 | 编辑 | 不透明 = 保留，透明 = 重新生成。需要 `-i`。 |
@@ -560,7 +423,7 @@ Skill、插件和独立 CLI 是不同的安装；一个更新命令不一定覆�
 
 ```bash
 # CLI
-gpt-image --model gpt-image-2.6-flare -p "<条目中的提示词>" --size portrait --quality high -f out.png
+gpt-image --model gpt-image-2.6-sunburst -p "<条目中的提示词>" --size portrait --quality high -f out.png
 ```
 
 ```python
@@ -568,7 +431,7 @@ gpt-image --model gpt-image-2.6-flare -p "<条目中的提示词>" --size portra
 from openai import OpenAI
 client = OpenAI()
 result = client.images.generate(
-    model="gpt-image-2.6-flare",
+    model="gpt-image-2.6-sunburst",
     prompt="<条目中的提示词>",
     size="1024x1536",
     quality="high",

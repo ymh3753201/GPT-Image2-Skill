@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import NoReturn
 
 __all__ = ["main"]
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def main() -> int | NoReturn:

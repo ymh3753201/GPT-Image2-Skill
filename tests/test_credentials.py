@@ -1,5 +1,8 @@
 """Offline credential precedence with temporary files and fake keys only."""
 import os
+import contextlib
+import io
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -64,6 +67,19 @@ class CredentialTests(unittest.TestCase):
 
         self.assert_selected_key('')
         self.assertIn('OPENAI_API_KEY', os.environ)
+
+    def test_dotenv_provider_and_model_loaded_before_request_defaults(self):
+        from types import SimpleNamespace
+        (self.cwd / '.env').write_text(
+            'OPENAI_API_KEY=fake-key\nOPENAI_BASE_URL=https://local.example.test/v1\n'
+            'OPENAI_IMAGE_MODEL=local/image-alias\n', encoding='utf-8')
+        with patch.object(sys, 'argv', ['gpt-image', '-p', 'test']), \
+             patch.object(cli, 'OpenAI') as constructor, \
+             patch.object(cli, 'call_generate', return_value=SimpleNamespace(data=[])) as generate, \
+             contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(cli.main(), 1)
+        constructor.assert_called_once_with(max_retries=0, base_url='https://local.example.test/v1')
+        self.assertEqual(generate.call_args.args[1].model, 'local/image-alias')
 
 
 if __name__ == '__main__':

@@ -1,15 +1,15 @@
 {
-  "name": "wuyoscar-skills",
+  "name": "ymh-image-skills",
   "owner": {
-    "name": "wuyoscar",
-    "url": "https://github.com/wuyoscar"
+    "name": "ymh3753201",
+    "url": "https://github.com/ymh3753201"
   },
   "plugins": [
     {
       "name": "gpt-image",
       "source": "./",
-      "description": "OpenAI GPT Image 2/2.5/2.6 skill — Image 2.6 Flare by default, on-demand prompt references, and a packaged CLI for generation and editing.",
-      "homepage": "https://github.com/wuyoscar/gpt_image_2_skill",
+      "description": "OpenAI GPT Image 2/2.5/2.6 skill — Image 2.6 Sunburst by default, on-demand prompt references, and a packaged CLI for generation and editing.",
+      "homepage": "https://github.com/ymh3753201/GPT-Image2-Skill",
       "keywords": [
         "gpt-image-2",
         "openai",
@@ -19,6 +19,6 @@
     }
   ],
   "metadata": {
-    "description": "Image generation, editing and animation skills from Oscar."
+    "description": "GPT Image production distribution based on wuyoscar’s MIT-licensed project."
   }
 }
