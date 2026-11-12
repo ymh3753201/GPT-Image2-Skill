@@ -1,7 +1,7 @@
 {
-  "name": "wuyoscar-skills",
+  "name": "ymh-image-skills",
   "interface": {
-    "displayName": "Oscar’s image skills"
+    "displayName": "GPT Image production skills"
   },
   "plugins": [
     {

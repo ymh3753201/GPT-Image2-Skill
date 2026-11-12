@@ -1,83 +1,32 @@
-# Install or update GPT Image Skill
+# Install or update this distribution
 
-For the coding agent carrying out the user's request. Use this guide for both a
-first install and an update. Run the commands, inspect the results, and report
-what is available. Keep the user's existing installation scope and API settings.
+This is the ymh3753201 distribution based on wuyoscar/GPT-Image2-Skill. Default model: `gpt-image-2.6-sunburst`. Read [the Chinese package guide](../COURSE_INSTALL_ZH.md) for a ready-to-use Codex installation prompt.
 
-## 1. Identify the existing installation
+## Full local package (Codex)
 
-Check the current runtime's plugin/skill list, `command -v gpt-image`, and, if uv is
-available, `uv tool list`. Inspect only the relevant skill folders and installer
-records. Do not print environment variables, API keys, or credential files.
-
-- Claude Code plugin `gpt-image@wuyoscar-skills`: use the Claude update below.
-- Skills managed by `skills`: keep their project or global scope.
-- Codex native plugin: use the native plugin instructions in
-  [install and update](install-update.md#codex-native-plugin).
-- A standalone CLI managed by uv: update it separately if present.
-- Hand-copied or locally edited files: preserve them. Use their original installer
-  or a clean linked checkout; do not overwrite them to force an update.
-
-## 2. Update an existing installation
-
-Run only the commands matching the installations found above:
+Check Python 3.11+, uv, the existing CLI and the intended skills directory. Preserve unrelated configuration. The extracted package must contain `pyproject.toml`, `src`, `skills` and `scripts`. Run from that root:
 
 ```bash
-# Claude Code plugin
-claude plugin update gpt-image@wuyoscar-skills
-
-# Project-local skills installed by skills
-npx --yes skills@latest update gpt-image get-prompt-from-image --project
-
-# Standalone CLI installed from this repository by uv
-uv tool upgrade gpt-image-cli
+uv tool install .
+python scripts/install_skills.py
+gpt-image --version
+gpt-image --help
 ```
 
-For skills originally installed globally, replace `--project` with `--global`.
-Do not update unrelated skills. A plugin normally includes the CLI source; a
-copied skill can delegate to an independently installed CLI, which may also need
-updating. Use [the installation guide](install-update.md) for other sources.
+Use `python3` or `py -3` if appropriate to the OS. For an authorized update, use `uv tool install --force .` and `python scripts/install_skills.py --replace`. `--skills-dir PATH` chooses an explicit install directory. The default uses `$CODEX_HOME/skills`, falling back to `~/.codex/skills`.
 
-## 3. First install
+The installer copies both complete skills and generates a bundled `gpt_image_cli` source copy inside `gpt-image/scripts/`. This permits `uv run <installed-skill>/scripts/generate.py` to work even without a separately installed command on PATH. The repository's `src/` is the canonical source. No GitHub download is performed by the launcher or installer. Python dependencies may still need downloading from the user's approved package index.
 
-Use the user's current runtime. For Claude Code, install the plugin at project
-scope unless the user requested a global installation:
+For users who can access GitHub, clone https://github.com/ymh3753201/GPT-Image2-Skill and follow the same local commands. The Release full ZIP contains the same source and reference assets, without Git history, caches or credentials.
 
-```bash
-claude plugin marketplace add wuyoscar/GPT-Image2-Skill
-claude plugin install gpt-image@wuyoscar-skills --scope project
-```
+## Configure when requested
 
-For Codex, install the two skills into the current project:
+Use the intended image provider's `OPENAI_API_KEY` and optional `OPENAI_BASE_URL`, `OPENAI_IMAGE_MODEL`. Prefer a `.env` in the user's chosen image working directory, or process environment. Do not overwrite global chat credentials or display secrets. Existing process variables override `.env`; working-directory `.env` precedes home `.env`.
 
-```bash
-npx --yes skills@latest add wuyoscar/GPT-Image2-Skill --skill gpt-image get-prompt-from-image --agent codex --copy
-```
+With no model override, both generation and editing explicitly send `gpt-image-2.6-sunburst`. The provider and model remain configurable. See [provider compatibility](../skills/gpt-image/references/providers.md).
 
-The skills installer requires Node.js 22.20 or later. Other supported runtimes can
-replace `codex` with their agent name. If the user only wants the CLI, or the skill
-needs a backend, use an existing uv installation to run it without a global install:
+## Verify and report
 
-```bash
-uvx --refresh --from git+https://github.com/wuyoscar/GPT-Image2-Skill gpt-image --help
-```
+Check `gpt-image --version`, `gpt-image --help`, and `uv run <installed-skill>/scripts/generate.py --help`. Both the installed CLI and skill copy should be from this distribution. Start a new Codex chat or restart it to refresh skill instructions.
 
-If a required package manager is absent, explain the missing dependency and use
-the user's approved setup method. Do not silently switch to a global install.
-
-## 4. Verify and report
-
-Confirm that the intended plugin or skill is listed in the selected scope. For
-an installed CLI, run `gpt-image --version`, `gpt-image --help`, and
-`gpt-image animate --help`. For a plugin's bundled CLI, run the same flags through
-`uv run <plugin-root>/skills/gpt-image/scripts/generate.py`; package metadata may
-be absent there, so also inspect the plugin manifest version.
-
-Report the installed source, scope, version and checks. Tell the user to start a
-new agent session to load updated instructions. Installation does not require an
-API key or a paid image request. Existing API-key settings must remain unchanged;
-if the user later requests generation, check availability without revealing the
-key. Never claim a successful image call based only on installation or `--help`.
-
-The single-guide entry point was inspired by
-[Agent Reach's install/update guide](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md).
+Installation and help checks do not require a key or paid request. Generate only when the user requests it, within their selected scope. Report source, installed version and paths, checks performed and whether actual image generation was tested. Other installation routes are in [install-update.md](install-update.md).

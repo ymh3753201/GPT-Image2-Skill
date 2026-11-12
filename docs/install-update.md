@@ -1,5 +1,7 @@
 # Install and update
 
+For a full ZIP or local source package, use [the local installation guide](install.md) and [中文安装说明](../COURSE_INSTALL_ZH.md). This route installs the CLI plus complete skills without GitHub access. Copy-only remote skill installers below need the CLI installed separately; the launcher does not fetch a missing backend.
+
 To let a coding agent handle detection, installation and verification, give it
 [the agent installation guide](install.md). The commands below explain each route.
 
@@ -12,18 +14,18 @@ update the others. Start a new agent session after updating its instructions.
 Install once inside Claude Code:
 
 ```text
-/plugin marketplace add wuyoscar/gpt_image_2_skill
-/plugin install gpt-image@wuyoscar-skills
+/plugin marketplace add ymh3753201/GPT-Image2-Skill
+/plugin install gpt-image@ymh-image-skills
 ```
 
 Update from a terminal:
 
 ```bash
-claude plugin update gpt-image@wuyoscar-skills
+claude plugin update gpt-image@ymh-image-skills
 ```
 
 For automatic updates, open `/plugin`, select **Marketplaces**, choose
-**wuyoscar-skills**, and enable auto-update. Third-party marketplaces do not
+**ymh-image-skills**, and enable auto-update. Third-party marketplaces do not
 have auto-update enabled by default. Use `/reload-plugins` or a new session to
 load the updated files. A bare `claude plugin marketplace update` refreshes
 listings, not all installed plugins.
@@ -36,7 +38,7 @@ The `skills` installer records the remote source so it can pull updates later.
 The current installer requires Node.js 22.20 or later. For a project-local Codex install:
 
 ```bash
-npx --yes skills@latest add wuyoscar/gpt_image_2_skill --skill gpt-image get-prompt-from-image --agent codex --copy
+npx --yes skills@latest add ymh3753201/GPT-Image2-Skill --skill gpt-image get-prompt-from-image --agent codex --copy
 ```
 
 Update only these two skills:
@@ -61,14 +63,14 @@ compatibility manifest and a repo marketplace at `.agents/plugins/marketplace.js
 On a Codex version with `codex plugin` support:
 
 ```bash
-codex plugin marketplace add wuyoscar/gpt_image_2_skill --ref main
-codex plugin add gpt-image@wuyoscar-skills
+codex plugin marketplace add ymh3753201/GPT-Image2-Skill --ref main
+codex plugin add gpt-image@ymh-image-skills
 ```
 
 Refresh that Git marketplace and request installation from the refreshed catalog:
 
 ```bash
-codex plugin marketplace upgrade wuyoscar-skills && codex plugin add gpt-image@wuyoscar-skills
+codex plugin marketplace upgrade ymh-image-skills && codex plugin add gpt-image@ymh-image-skills
 ```
 
 Start a new session and check the installed version in `/plugins`. The refresh
@@ -94,7 +96,7 @@ CLI, including the local animation tool; it does not update separately copied sk
 folders. For a one-off run that refreshes the cached Git source:
 
 ```bash
-uvx --refresh --from git+https://github.com/wuyoscar/gpt_image_2_skill gpt-image --help
+uvx --refresh --from git+https://github.com/ymh3753201/GPT-Image2-Skill gpt-image --help
 ```
 
 ## Linked checkout

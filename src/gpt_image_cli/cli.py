@@ -5,6 +5,7 @@
 #     "openai>=2.32.0",
 #     "python-dotenv>=1.0",
 #     "Pillow>=12.0",
+#     "socksio>=1.0",
 # ]
 # ///
 """General-purpose CLI for OpenAI GPT Image 2, 2.5 and 2.6.
@@ -51,9 +52,11 @@ import os
 import re
 import sys
 import urllib.request
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from openai import APIError, OpenAI
@@ -80,7 +83,7 @@ SIZE_SHORTCUTS: dict[str, str] = {
     "tall": "2160x3840",
 }
 
-DEFAULT_MODEL = "gpt-image-2.6-flare"
+DEFAULT_MODEL = "gpt-image-2.6-sunburst"
 DEFAULT_SIZE = "1024x1024"
 DEFAULT_MODERATION = "low"
 
@@ -113,13 +116,18 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Local animation: gpt-image animate --help (sprite sheet to GIF and HTML preview).",
     )
-    from importlib.metadata import PackageNotFoundError, version
-    try:
-        package_version = version("gpt-image-cli")
-    except PackageNotFoundError:
-        package_version = "uninstalled source"
+    if __package__:
+        from . import __version__ as package_version
+    else:
+        from importlib.metadata import PackageNotFoundError, version
+        try:
+            package_version = version("gpt-image-cli")
+        except PackageNotFoundError:
+            package_version = "uninstalled source"
     p.add_argument("--version", action="version", version=f"gpt-image-cli {package_version}")
-    p.add_argument("-p", "--prompt", required=True, help="Text prompt / edit instruction.")
+    prompts = p.add_mutually_exclusive_group(required=True)
+    prompts.add_argument("-p", "--prompt", help="Text prompt / edit instruction.")
+    prompts.add_argument("--prompt-file", type=Path, help="Read the complete prompt from a UTF-8 text file.")
     p.add_argument(
         "-f", "--file",
         help="Output path. Auto-generated as YYYY-MM-DD-HH-MM-SS-<slug>.<ext> if omitted "
@@ -135,7 +143,12 @@ def parse_args() -> argparse.Namespace:
         help="Alpha-channel PNG mask (opaque = preserved, transparent = regenerated). "
              "Edits endpoint only; requires -i.",
     )
-    p.add_argument("--model", default=DEFAULT_MODEL, help=f"Model ID. Default {DEFAULT_MODEL}; also supports gpt-image-2.6-sunburst, gpt-image-2.5-flare, gpt-image-2.5-sunburst, and gpt-image-2.")
+    p.add_argument("--model", default=os.environ.get("OPENAI_IMAGE_MODEL") or DEFAULT_MODEL,
+                   help=f"Default {DEFAULT_MODEL}. Exact model ID or provider alias; OPENAI_IMAGE_MODEL overrides the default.")
+    p.add_argument("--base-url", default=os.environ.get("OPENAI_BASE_URL") or None,
+                   help="OpenAI-compatible API base URL, including /v1 when required. Overrides OPENAI_BASE_URL.")
+    p.add_argument("--complexity", choices=["low", "medium", "high"], default=None,
+                   help="Image 2.6 planning effort. Omitted by default (OpenAI uses high). Independent of quality.")
     p.add_argument(
         "--size", default=None,
         help="Image size. Accepts literals (1024x1024, 1536x1024, 2048x2048, 3840x2160, "
@@ -178,11 +191,28 @@ def parse_args() -> argparse.Namespace:
         help="Optional end-user identifier forwarded to OpenAI for abuse tracking.",
     )
     args = p.parse_args()
+    if args.prompt_file:
+        try:
+            args.prompt = args.prompt_file.expanduser().read_text(encoding="utf-8-sig")
+        except (OSError, UnicodeError) as exc:
+            p.error(f"cannot read --prompt-file: {exc}")
+    if not args.prompt.strip():
+        p.error("prompt must not be empty")
+    if not args.model.strip():
+        p.error("--model must not be empty")
+    if args.image and len(args.image) > 16:
+        p.error("--image accepts at most 16 reference images")
+    custom_provider = False
+    if args.base_url:
+        endpoint = urlparse(args.base_url)
+        if endpoint.scheme not in ("http", "https") or not endpoint.hostname:
+            p.error("--base-url must be an http(s) API base URL")
+        custom_provider = endpoint.hostname.lower() != "api.openai.com"
     image25 = re.fullmatch(r"gpt-image-2\.5-(?:flare|sunburst)(?:-\d{4}-\d{2}-\d{2})?", args.model) is not None
     image26 = args.model in ("gpt-image-2.6-flare", "gpt-image-2.6-sunburst")
     gif = args.output_format == "gif"
     if gif:
-        if not image26:
+        if not image26 and not custom_provider:
             p.error("--format gif requires a GPT Image 2.6 model")
         if args.mask or args.output_compression is not None:
             p.error("GIF output does not support --mask or --compression")
@@ -196,7 +226,7 @@ def parse_args() -> argparse.Namespace:
         p.error("--frames and --frame-duration require --format gif")
     if args.size is None:
         args.size = "auto" if gif else DEFAULT_SIZE
-    if args.quality in ("xhigh", "max") and not (image25 or image26):
+    if args.quality in ("xhigh", "max") and not (image25 or image26 or custom_provider):
         p.error("--quality xhigh/max requires a GPT Image 2.5 or 2.6 Flare/Sunburst model")
     if args.background == "transparent" and args.output_format in ("jpeg", "gif"):
         p.error("--background transparent requires --format png or webp")
@@ -230,10 +260,11 @@ def _filter_none(d: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def _animation_body(args: argparse.Namespace) -> dict[str, Any] | None:
-    # Keep compatibility with SDKs whose typed image methods predate GIF fields.
+def _extra_body(args: argparse.Namespace) -> dict[str, Any] | None:
+    # Preserve SDK 2 compatibility for newer API fields.
     return _filter_none({"frame_count": args.frame_count,
-                         "frame_duration_ms": args.frame_duration_ms}) or None
+                         "frame_duration_ms": args.frame_duration_ms,
+                         "complexity": args.complexity}) or None
 
 
 def call_generate(client: OpenAI, args: argparse.Namespace) -> Any:
@@ -248,7 +279,7 @@ def call_generate(client: OpenAI, args: argparse.Namespace) -> Any:
         "output_format": args.output_format,
         "output_compression": args.output_compression if args.output_format in ("jpeg", "webp") else None,
         "user": args.user,
-        "extra_body": _animation_body(args),
+        "extra_body": _extra_body(args),
     }))
 
 
@@ -269,9 +300,9 @@ def call_edit(client: OpenAI, args: argparse.Namespace) -> Any:
         )
         input_fidelity = None
 
-    image_handles = [p.open("rb") for p in args.image]
-    mask_handle = args.mask.open("rb") if args.mask else None
-    try:
+    with ExitStack() as stack:
+        image_handles = [stack.enter_context(p.open("rb")) for p in args.image]
+        mask_handle = stack.enter_context(args.mask.open("rb")) if args.mask else None
         return client.images.edit(**_filter_none({
             "model": args.model,
             "image": image_handles,
@@ -285,13 +316,8 @@ def call_edit(client: OpenAI, args: argparse.Namespace) -> Any:
             "output_format": args.output_format,
             "output_compression": args.output_compression if args.output_format in ("jpeg", "webp") else None,
             "user": args.user,
-            "extra_body": _animation_body(args),
+            "extra_body": _extra_body(args),
         }))
-    finally:
-        for h in image_handles:
-            h.close()
-        if mask_handle:
-            mask_handle.close()
 
 
 def write_outputs(data: list[Any], out_path: Path, n: int) -> list[Path]:
@@ -326,9 +352,8 @@ def main() -> int:
         else:  # Also support running this PEP 723 script directly.
             from animation import main as animate_main
         return animate_main(sys.argv[2:])
-    args = parse_args()
-
     _load_env_chain()
+    args = parse_args()
     if not os.environ.get("OPENAI_API_KEY"):
         print(
             "error: OPENAI_API_KEY not set. Add it to env / .env / ~/.env, or use your host agent's native image tool.",
@@ -339,10 +364,10 @@ def main() -> int:
     ext = args.output_format or "png"
     out_path = Path(args.file).expanduser().resolve() if args.file else default_output_path(args.prompt, ext)
 
-    client = OpenAI(max_retries=0)  # No hidden retries of potentially billable generation requests.
-
     try:
-        result = call_edit(client, args) if args.image else call_generate(client, args)
+        # No hidden retries of potentially billable generation requests.
+        with OpenAI(**_filter_none({"max_retries": 0, "base_url": args.base_url})) as client:
+            result = call_edit(client, args) if args.image else call_generate(client, args)
     except APIError as e:
         print(f"error: {type(e).__name__}: {e}", file=sys.stderr)
         return 1

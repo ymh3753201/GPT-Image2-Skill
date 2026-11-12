@@ -1,3 +1,5 @@
+**v0.4.0 local-package distribution**, maintained by ymh3753201 from [wuyoscar’s upstream project](https://github.com/wuyoscar/GPT-Image2-Skill). Defaults to 2.6 Sunburst for posters, short-drama keyframes, ecommerce and reference editing, while preserving custom providers and model selection. [Install](docs/install.md) · [Official model notes](skills/gpt-image/references/models.md)
+
 <h1 align="center">GPT Image · Prompt gallery + skills + CLI</h1>
 <p align="center"><em>Prompts and reference images for GPT Image 2, 2.5 and 2.6, with two agent skills and a CLI.</em></p>
 
@@ -40,7 +42,7 @@
   </tr>
   <tr>
     <td>Last update</td>
-    <td><strong>2026-11-09</strong></td>
+    <td><strong>2026-11-12</strong></td>
   </tr>
   <tr>
     <td>Docs</td>
@@ -48,7 +50,7 @@
   </tr>
 </table>
 
-Browse the images, open a prompt and try it with your own references. The `gpt-image` skill generates and edits images; `get-prompt-from-image` extracts prompts from images. The CLI and generation skill default to GPT Image 2.6 Flare. Image 2 prompts and the 2.5 [reading material](#image-25-reading) and task guides remain available.
+Browse the images, open a prompt and try it with your own references. The `gpt-image` skill generates and edits images; `get-prompt-from-image` extracts prompts from images. The CLI and generation skill default to GPT Image 2.6 Sunburst. Image 2 prompts and the 2.5 [reading material](#image-25-reading) and task guides remain available.
 
 For the CLI, export the relevant PDF pages as PNG, WebP or JPG, then attach them with `-i`. See the [supported image-reference formats](https://developers.openai.com/api/reference/python/resources/images/methods/edit). Keep required text and edit constraints explicit.
 
@@ -111,7 +113,7 @@ The sword tip drifts slightly, so it is an animation asset rather than a registe
 
 ## ✨ Made with GPT Image 2.6
 
-We tried five ideas from X and Reddit with `gpt-image-2.6-flare` at `high` quality. Click an image for the original PNG, or open the prompts below to see the sources and our adaptations.
+The upstream author tried five ideas from X and Reddit with `gpt-image-2.6-flare` at `high` quality. Click an image for the original PNG, or open the prompts below to see the sources and our adaptations.
 
 <table>
   <tr>
@@ -311,19 +313,19 @@ photorealistic, 3D render, flat vector style, pure cel shading, watercolor bleed
 
 | Model | Best starting point |
 |---|---|
-| `gpt-image-2.6-flare` | **Default**: fast generation and editing |
-| `gpt-image-2.6-sunburst` | Detailed visual work and precise editing |
+| `gpt-image-2.6-sunburst` | **Default**: detailed composition and reference editing |
+| `gpt-image-2.6-flare` | Fast generation and editing |
 | `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` | Continue existing 2.5 workflows |
 | `gpt-image-2` | Retain Image 2 workflows |
 
-The CLI and Skill use `gpt-image-2.6-flare` unless you choose another model. The Skill passes that choice explicitly with `--model` and does not ask you to confirm the default. To keep an older command on Image 2, add `--model gpt-image-2`.
+The CLI and Skill use `gpt-image-2.6-sunburst` unless you choose another model. The Skill passes that choice explicitly with `--model` and does not ask you to confirm the default. To keep an older command on Image 2, add `--model gpt-image-2`.
 
-The CLI generates and edits PNG, JPEG, WebP and GIF images. It defaults to `high` quality; use `low` for drafts. Models 2.5 and 2.6 also accept `xhigh` and `max`. SVG, complexity and markup controls are not exposed yet. Use `gpt-image animate` to assemble a sprite sheet locally. See the [run record](docs/image-2.6-samples.md) for the 2.6 Flare generations and reference edits we tested.
+The CLI generates and edits PNG, JPEG, WebP and GIF images. It defaults to `high` quality; use `low` for drafts. Models 2.5 and 2.6 also accept `xhigh` and `max`. Optional planning effort is exposed as `--complexity`; SVG and markup controls are not exposed yet. Use `gpt-image animate` to assemble a sprite sheet locally. See the [run record](docs/image-2.6-samples.md) for the upstream author’s 2.6 Flare generations and reference edits.
 
-For example, generate a transparent icon with 2.6 Flare:
+For example, generate a transparent icon with 2.6 Sunburst:
 
 ```bash
-gpt-image --model gpt-image-2.6-flare \
+gpt-image --model gpt-image-2.6-sunburst \
   -p "An original flat leaf icon, centered with generous padding, transparent background" \
   --quality medium --background transparent --format png -f leaf.png
 ```
@@ -335,7 +337,7 @@ After installing, copy a gallery prompt into `gpt-image --model <CHOSEN_MODEL> -
 ### Text → image
 
 ```bash
-gpt-image --model gpt-image-2.6-flare -p "a photorealistic convenience store at 10pm" --size 1k --quality high -f store.png
+gpt-image --model gpt-image-2.6-sunburst -p "a photorealistic convenience store at 10pm" --size 1k --quality high -f store.png
 ```
 
 Under the hood: `POST /v1/images/generations` with the explicitly selected model.
@@ -360,164 +362,21 @@ Under the hood: `POST /v1/images/edits` (multipart form). GPT Image 2, 2.5 and 2
 
 <a id="install"></a>
 
-## 📥 Install
+## Install and update
 
-Send this to your coding agent for a first install or an update:
+Download the full ZIP from this repository's Releases or use a shared full package. Follow the [local installation guide](docs/install.md) or [中文安装说明](COURSE_INSTALL_ZH.md). Python 3.11+, uv and Python dependencies are required; no GitHub source download is needed when installing the full package.
 
-```text
-Install or update GPT Image Skill for me: https://raw.githubusercontent.com/wuyoscar/GPT-Image2-Skill/main/docs/install.md
-```
-
-The agent checks your current installation, uses the matching updater, and verifies
-the result. You can also follow the commands below yourself.
-
-Choose either skill or install both: `gpt-image` generates and edits images, while `get-prompt-from-image` extracts prompts from reference images.
-
-Check for an existing skill or CLI before installing. Preserve existing skill folders and API-key files. Use your runtime's skill list/status command when available, and ask before installing into a global or shared directory.
+From the extracted root:
 
 ```bash
-command -v gpt-image || true
-command -v uv >/dev/null && uv tool list | grep -E '^gpt-image-cli([[:space:]]|$)' || true
-test -n "${OPENAI_API_KEY:-}" && echo "OPENAI_API_KEY is already set (value hidden)"
+uv tool install .
+python scripts/install_skills.py
+gpt-image --version
 ```
 
-<details>
-<summary><strong>Claude Code</strong></summary>
+For updates, run `uv tool install --force .` and `python scripts/install_skills.py --replace`. Start a new Codex chat afterward. See [other installation routes](docs/install-update.md) for plugins and other agents.
 
-```text
-/plugin marketplace add wuyoscar/gpt_image_2_skill
-/plugin install gpt-image@wuyoscar-skills
-```
-
-</details>
-
-<details>
-<summary><strong>Codex</strong></summary>
-
-For a managed install that records the remote source and supports `skills update`:
-
-```bash
-npx --yes skills@latest add wuyoscar/gpt_image_2_skill --skill gpt-image get-prompt-from-image --agent codex --copy
-```
-
-Recent Codex versions can also install the native plugin; see the [full steps](docs/install-update.md#codex-native-plugin). The skill-installer and manual alternatives follow.
-
-Codex ships with built-in skill helpers such as `$skill-installer` and `$skill-creator`.
-Open Codex and invoke the built-in installer with the GitHub skill-folder URL for each skill you want:
-
-```text
-# gpt-image
-$skill-installer
-Install this skill from GitHub:
-https://github.com/wuyoscar/gpt_image_2_skill/tree/main/skills/gpt-image
-
-# get-prompt-from-image
-$skill-installer
-Install this skill from GitHub:
-https://github.com/wuyoscar/gpt_image_2_skill/tree/main/skills/get-prompt-from-image
-```
-
-The installer downloads each GitHub folder and places it under your Codex skills directory, usually:
-
-```bash
-~/.codex/skills/gpt-image
-~/.codex/skills/get-prompt-from-image
-```
-
-Restart Codex after installation so the new skills are loaded.
-
-If you prefer to install both manually, copy their skill folders into Codex's skills directory:
-
-```bash
-git clone https://github.com/wuyoscar/gpt_image_2_skill.git
-cd gpt_image_2_skill
-
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-for skill in gpt-image get-prompt-from-image; do
-  test -e "${CODEX_HOME:-$HOME/.codex}/skills/$skill" && echo "$skill already exists; stop before overwriting" && exit 1
-  cp -R "skills/$skill" "${CODEX_HOME:-$HOME/.codex}/skills/"
-done
-```
-
-</details>
-
-<details>
-<summary><strong>AgentSkills / npx skills</strong></summary>
-
-For runtimes supported by the cross-agent `skills` installer, select either skill or install both together from GitHub:
-
-```bash
-# Change --agent to claude-code, codex, opencode, openclaw, or another supported runtime.
-npx --yes skills@latest add wuyoscar/gpt_image_2_skill \
-  --skill gpt-image \
-  --skill get-prompt-from-image \
-  --agent codex --copy
-```
-
-These examples intentionally avoid `--global`. Add `--global` only when you explicitly want this skill installed into that runtime's global/shared skills directory.
-
-Other runtimes can use the manual agent-skill installation below.
-
-</details>
-
-<details>
-<summary><strong>Manual agent-skill install</strong></summary>
-
-Set `AGENT_SKILLS_DIR` to the skills directory used by your agent runtime, then symlink one or both skill folders into it.
-
-```bash
-git clone https://github.com/wuyoscar/gpt_image_2_skill.git
-cd gpt_image_2_skill
-
-# Choose the skill directory for your runtime.
-# Examples:
-#   Codex:      ~/.codex/skills
-#   Claude Code / OpenClaw / Hermes Agent / other runtimes: use that runtime's documented skills directory.
-export AGENT_SKILLS_DIR="/path/to/your/agent/skills"
-
-mkdir -p "$AGENT_SKILLS_DIR"
-for skill in gpt-image get-prompt-from-image; do
-  test -e "$AGENT_SKILLS_DIR/$skill" && echo "$skill already exists; stop before overwriting" && exit 1
-  ln -s "$PWD/skills/$skill" "$AGENT_SKILLS_DIR/$skill"
-done
-```
-
-</details>
-
-<details>
-<summary><strong>CLI</strong></summary>
-
-```bash
-uvx --from git+https://github.com/wuyoscar/gpt_image_2_skill gpt-image --model gpt-image-2.6-flare -p "a cat astronaut"
-
-# or install to PATH if not already installed
-command -v gpt-image >/dev/null || uv tool install git+https://github.com/wuyoscar/gpt_image_2_skill
-gpt-image --model gpt-image-2.6-flare -p "a cat astronaut"
-```
-
-</details>
-
-<details>
-<summary><strong>Update</strong></summary>
-
-Use the updater that matches your installation, then start a new agent session.
-
-| Installed as | Update command |
-|---|---|
-| Claude Code plugin | `claude plugin update gpt-image@wuyoscar-skills` |
-| Project skills for Codex / other agents via skills | `npx --yes skills@latest update gpt-image get-prompt-from-image --project` |
-| Global skills via skills | Replace `--project` above with `--global` |
-| Codex native plugin | `codex plugin marketplace upgrade wuyoscar-skills && codex plugin add gpt-image@wuyoscar-skills` |
-| Standalone Python CLI | `uv tool upgrade gpt-image-cli` |
-| Skills symlinked to a Git checkout | `git -C /path/to/gpt_image_2_skill pull --ff-only` |
-
-Claude Code can auto-update `wuyoscar-skills` from the Marketplaces tab in `/plugin`. After refreshing a Codex native plugin, check its installed version in `/plugins` in a new session. Check the CLI with `gpt-image --version`.
-
-Skills, plugins and a standalone CLI are separate installs. Updating one may not update another, and hand-copied folders may not be managed by skills. See [install and update](docs/install-update.md) for scope, setup and official sources.
-
-</details>
-
-> **API keys:** The CLI reads `OPENAI_API_KEY` from the process environment, then `.env`, then `~/.env`. It keeps any value already set. To avoid using a local key, check all three places; `unset OPENAI_API_KEY` clears only the process variable. Codex users can choose the built-in image tool for platform-managed generation.
+Configure `OPENAI_BASE_URL` or `--base-url` for an OpenAI-compatible provider. Set `OPENAI_IMAGE_MODEL` or `--model` to override the default `gpt-image-2.6-sunburst`. Store `OPENAI_API_KEY` in the process environment or a private image working-directory `.env`, outside the shared package.
 
 <a id="cli-reference"></a>
 
@@ -526,12 +385,15 @@ Skills, plugins and a standalone CLI are separate installs. Updating one may not
 <details>
 <summary><strong>Parameters, quality settings and SDK examples</strong></summary>
 
-### Parameters
+### Common parameters
 
 | Flag | Values | Default | Applies to | Notes |
 |---|---|---|---|---|
+| `--prompt-file` | UTF-8 file | Omitted | Both | Alternative to `-p`; preserves multiline copy. |
+| `--base-url` | API base URL | `OPENAI_BASE_URL` or OpenAI | Both | Compatible providers supported. |
+| `--complexity` | `low`, `medium`, `high` | Omitted | Both | Optional planning effort. |
 | `-p, --prompt` | str | required | both | Full prompt text. |
-| `--model` | exact model ID above | `gpt-image-2.6-flare` | both | The Skill passes the resolved model explicitly, including the default. |
+| `--model` | exact model ID above | `gpt-image-2.6-sunburst` | both | The Skill passes the resolved model explicitly, including the default. |
 | `-f, --file` | path | `./fig/YYYY-MM-DD-HH-MM-SS-<slug>.png` | both | Explicit output path. |
 | `-i, --image` | path (repeatable) | omitted | edits | Presence routes through `/v1/images/edits`. |
 | `-m, --mask` | path (PNG, alpha) | omitted | edits | Opaque = preserved, transparent = regenerated. Requires `-i`. |
@@ -561,7 +423,7 @@ Each entry includes a prompt and metadata (`"size"` · `"quality"` · source). U
 
 ```bash
 # CLI
-gpt-image --model gpt-image-2.6-flare -p "<PROMPT FROM ENTRY>" --size portrait --quality high -f out.png
+gpt-image --model gpt-image-2.6-sunburst -p "<PROMPT FROM ENTRY>" --size portrait --quality high -f out.png
 ```
 
 ```python
@@ -569,7 +431,7 @@ gpt-image --model gpt-image-2.6-flare -p "<PROMPT FROM ENTRY>" --size portrait -
 from openai import OpenAI
 client = OpenAI()
 result = client.images.generate(
-    model="gpt-image-2.6-flare",
+    model="gpt-image-2.6-sunburst",
     prompt="<PROMPT FROM ENTRY>",
     size="1024x1536",
     quality="high",
